@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: policy-authority-service
+  namespace: authority-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: policy-authority-service
+  template:
+    metadata:
+      labels:
+        app: policy-authority-service
+    spec:
+      containers:
+        - name: policy-authority-service
+          image: sachilaawandya/policy-authority-service:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://mysql:3306/authoritydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-user
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-password
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: update
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: policy-authority-service
+  namespace: authority-service
+spec:
+  type: ClusterIP
+  selector:
+    app: policy-authority-service
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
