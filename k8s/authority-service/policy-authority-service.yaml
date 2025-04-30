@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: policy-authority-service
+  namespace: authority-service
+spec:
+  type: ClusterIP
+  selector:
+    app: policy-authority-service
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080

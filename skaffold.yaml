@@ -1,0 +1,39 @@
+apiVersion: skaffold/v4beta13
+kind: Config
+metadata:
+  name: policy-authority-service
+build:
+  artifacts:
+    - image: sachilaawandya/policy-authority-service
+      context: authority-service
+      docker:
+        dockerfile: Dockerfile
+  tagPolicy:
+    sha256: {}
+manifests:
+  rawYaml:
+    - k8s/namespaces.yaml
+    - k8s/authority-service/mysql-secret.yaml
+    - k8s/authority-service/mysql-storage.yaml
+    - k8s/authority-service/mysql-deployment.yaml
+    - k8s/authority-service/policy-authority-deployment.yaml
+    - k8s/authority-service/policy-authority-service.yaml
+
+deploy:
+  kubectl:
+    flags:
+      apply:
+        - --namespace=authority-service
+      delete:
+        - --namespace=authority-service
+portForward:
+  - resourceType: service
+    resourceName: policy-authority-service
+    namespace: authority-service
+    port: 8080
+    localPort: 8082
+  - resourceType: service
+    resourceName: mysql
+    namespace: authority-service
+    port: 3306
+    localPort: 33065

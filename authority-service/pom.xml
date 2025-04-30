@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.policy</groupId>
-	<artifactId>authority</artifactId>
+	<artifactId>authority-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>authority</name>
 	<description>Policy authory service</description>
