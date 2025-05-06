@@ -1,151 +1,155 @@
-# 🛡️ Policy Authority Service
+# Policy-as-a-Service Platform
 
-Centralized, cloud-native microservice for authoring and managing access control policies (RBAC/ABAC) in distributed systems. Built with Spring Boot, MySQL, Docker, Kubernetes, and Skaffold.
+A comprehensive microservices-based platform for centralized policy management, evaluation, and governance across enterprise applications.
 
----
+## Overview
 
-## 🚀 Features
+This Policy-as-a-Service (PaaS) platform provides a centralized way to define, manage, and enforce policies across your entire application ecosystem. By extracting policy logic from individual applications into a dedicated service layer, you can ensure consistent policy enforcement, simplified compliance, and greater business agility.
 
-- **Policy Authoring:** Create, update, delete, and list access control policies (RBAC/ABAC/Custom).
-- **RESTful API:** Clean, documented endpoints for integration.
-- **MySQL Persistence:** Reliable storage for all policy data.
-- **Kubernetes Native:** All manifests provided; deployable to any K8s cluster.
-- **Skaffold Integration:** One-command local development and deployment.
-- **Port Forwarding:** Easy local access to API and DB.
+![Architecture Overview](https://github.com/yourusername/policy-as-a-service/raw/main/docs/images/architecture.png)
 
----
+## Key Features
 
-## 📂 Project Structure
+- **Centralized Policy Management**: Define policies once, apply them everywhere
+- **Real-time Policy Evaluation**: High-performance decision engine
+- **Comprehensive Auditing**: Track all policy decisions for compliance
+- **Flexible Integration**: Connect with any application through REST APIs and events
+- **Role-Based Access Control**: Fine-grained permission management
+- **Multi-tenancy Support**: Serve multiple business units or customers with isolated policies
+- **Event-driven Architecture**: React to system changes through message-based communication
 
-access-policy-project/
-authority-service/ # Spring Boot microservice (source code, Dockerfile)
-k8s/ # All Kubernetes manifests
-authority-service/
-*.yaml
-namespaces.yaml
-skaffold.yaml # Skaffold config for build/deploy/dev
-README.md
+## Microservices Architecture
 
----
+The platform consists of the following microservices:
 
-## 🏗️ Requirements
+| Service | Description | Tech Stack |
+|---------|-------------|------------|
+| **Authority Service** | Core policy definition and management | Spring Boot, MySQL |
+| **Authentication Service** | User identity and access management | Spring Boot, OAuth2 |
+| **Policy Evaluation Service** | Real-time policy decision engine | Spring Boot, OPA |
+| **Resource Service** | Resource registry and management | Spring Boot, MongoDB |
+| **Audit Service** | Comprehensive logging and reporting | Spring Boot, Elasticsearch |
+| **API Gateway** | Unified entry point and routing | Spring Cloud Gateway |
+| **Notification Service** | Alert and notification management | Spring Boot, RabbitMQ |
+| **Dashboard Service** | Web UI for policy management | Spring Boot, React |
+| **Analytics Service** | Policy usage insights and reporting | Spring Boot, Apache Spark |
+| **Integration Service** | External system connectors | Spring Boot, Apache Camel |
 
-- [Java 17+](https://adoptopenjdk.net/)
-- [Maven 3.8+](https://maven.apache.org/)
-- [Docker](https://www.docker.com/)
-- [Kubernetes Cluster](https://kubernetes.io/) (Minikube, Docker Desktop, or Cloud)
-- [Skaffold](https://skaffold.dev/)
+## Event-Driven Communication
 
----
+Services communicate through both REST APIs (for synchronous requests) and RabbitMQ (for asynchronous events), allowing for loose coupling and high scalability.
 
-## ⚡ Quick Start
+Key event types:
+- Policy lifecycle events (created, updated, deleted)
+- Decision events (permit, deny, indeterminate)
+- Resource events (registered, modified, removed)
+- System events (config changes, deployments)
 
-### 1. **Clone the Repository**
+## Getting Started
 
-git clone https://github.com/yourusername/access-policy-project.git
-cd access-policy-project
+### Prerequisites
 
+- Docker and Docker Compose
+- Kubernetes cluster (for production deployment)
+- Java 17 or higher
+- MySQL 8.0+
 
-### 2. **Build the Application**
+### Development Setup
 
-cd authority-service
-mvn clean package
-cd ..
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/policy-as-a-service.git
+   cd policy-as-a-service
+   ```
 
+2. Start the infrastructure services:
+   ```bash
+   docker-compose up -d mysql rabbitmq elasticsearch
+   ```
 
-### 3. **Start Skaffold (Build + Deploy to K8s)**
+3. Start each service in development mode:
+   ```bash
+   cd authority-service
+   ./mvnw spring-boot:run
+   ```
 
+4. Access the dashboard at [http://localhost:8080](http://localhost:8080)
 
-- **API available at:** [http://localhost:8080](http://localhost:8080)
-- **MySQL available at:** `localhost:33065`
+### Kubernetes Deployment
 
-### 4. **Test API Endpoints**
+We provide Helm charts for deploying the entire platform to Kubernetes:
 
-- List policies: `GET http://localhost:8080/api/policies`
-- Create policy: `POST http://localhost:8080/api/policies`
-- Swagger UI: `http://localhost:8080/swagger-ui.html`
+```bash
+helm repo add policy-as-a-service https://yourusername.github.io/policy-as-a-service/charts
+helm install paas policy-as-a-service/policy-platform
+```
 
----
+See the [deployment documentation](docs/deployment.md) for detailed instructions.
 
-## ⚙️ Configuration
+## Usage Examples
 
-| Variable                   | Description                        | Default/Example                |
-|----------------------------|------------------------------------|-------------------------------|
-| SPRING_DATASOURCE_URL      | JDBC URL for MySQL                 | jdbc:mysql://mysql:3306/authoritydb |
-| SPRING_DATASOURCE_USERNAME | MySQL user                         | authorityuser                 |
-| SPRING_DATASOURCE_PASSWORD | MySQL password                     | authoritypass                 |
-| SPRING_JPA_HIBERNATE_DDL_AUTO | JPA schema mode                  | update                        |
+### Simple Policy Evaluation
 
-All sensitive values are managed via Kubernetes Secrets.
+```java
+// Client code example
+PolicyEvaluationRequest request = PolicyEvaluationRequest.builder()
+    .subject("user:123")
+    .action("view")
+    .resource("document:456")
+    .context(Map.of("department", "finance"))
+    .build();
 
----
+PolicyDecision decision = policyClient.evaluate(request);
 
-## 🐳 Docker & Kubernetes
+if (decision.isPermitted()) {
+    // Allow the action
+} else {
+    // Deny the action
+}
+```
 
-- **Dockerfile:** Located in `authority-service/`
-- **Kubernetes YAMLs:** Located in `k8s/authority-service/` and `k8s/namespaces.yaml`
-- **Namespace:** All resources are deployed in the `authority-service` namespace.
+### Policy Definition
 
----
+```json
+{
+  "name": "Finance Document Access",
+  "description": "Controls who can access finance documents",
+  "policyDefinition": {
+    "target": {
+      "resource": {
+        "type": "document",
+        "attributes": {
+          "department": "finance"
+        }
+      }
+    },
+    "rules": [
+      {
+        "effect": "permit",
+        "condition": "subject.department == resource.department || subject.role == 'admin'"
+      }
+    ]
+  }
+}
+```
 
-## 🔗 Useful Commands
+See the [examples directory](examples/) for more use cases.
 
-| Action                | Command                                                           |
-|-----------------------|-------------------------------------------------------------------|
-| Build JAR             | `cd authority-service && mvn clean package`                       |
-| Build & Deploy (K8s)  | `skaffold dev`                                                   |
-| Access API            | `http://localhost:8080/api/policies`                             |
-| Access MySQL          | `mysql -h 127.0.0.1 -P 33065 -u authorityuser -p`                |
-| Tear down             | `skaffold delete`                                                |
+## API Documentation
 
----
+API documentation is available via Swagger UI when running each service:
 
-## 🧪 Testing
+- Authority Service: [http://localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html)
+- Policy Evaluation Service: [http://localhost:8082/swagger-ui.html](http://localhost:8082/swagger-ui.html)
 
-- Unit and integration tests via Maven:  
+## Contributing
 
-cd authority-service
-mvn test
+Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-- API testing via [Postman](https://www.postman.com/) or `curl`:
+## License
 
-curl http://localhost:8080/api/policies
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## Contact
 
----
-
-## 🗺️ Roadmap
-
-- [ ] Policy Evaluation Service microservice
-- [ ] Admin Dashboard (UI)
-- [ ] Audit Logging Service
-- [ ] ABAC condition builder UI
-- [ ] Helm charts for production deployment
-
----
-
-## 👤 Maintainer
-
-**Your Name**  
-[your.email@example.com](mailto:your.email@example.com)
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
----
-
-## 💡 References
-
-- [Spring Boot](https://spring.io/projects/spring-boot)
-- [Skaffold](https://skaffold.dev/)
-- [Kubernetes](https://kubernetes.io/)
-- [Sample Microservices with K8s](https://github.com/piomin/sample-spring-microservices-kubernetes)
-
----
-
-> _“The README is the front door of your service-make it welcoming and complete.”_
-
-
+For questions or support, please open an issue or contact [your-email@example.com](mailto:your-email@example.com).
