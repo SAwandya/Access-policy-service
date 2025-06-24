@@ -4,7 +4,7 @@ metadata:
   name: policy-authority-service
 build:
   artifacts:
-    - image: sachilaawandya/policy-authority-service
+    - image: sachilaawandyamanamperi/policy-authority-service
       context: authority-service
       docker:
         dockerfile: Dockerfile

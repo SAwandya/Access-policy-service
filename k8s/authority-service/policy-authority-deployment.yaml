@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: policy-authority-service
-          image: sachilaawandya/policy-authority-service:latest
+          image: sachilaawandyamanamperi/policy-authority-service:latest
           ports:
             - containerPort: 8080
           env:
