@@ -18,14 +18,14 @@ manifests:
     - k8s/authority-service/mysql-deployment.yaml
     - k8s/authority-service/policy-authority-deployment.yaml
     - k8s/authority-service/policy-authority-service.yaml
-    - k8s/nats/deployment.yaml
     - k8s/kafka/kafka-deployment.yaml
 deploy:
   kubectl:
-    namespaces:
-      - authority-service
-      - access-nats
-      - kafka
+    flags:
+      apply:
+        - --recursive
+      delete:
+        - --recursive
 portForward:
   - resourceType: service
     resourceName: policy-authority-service
@@ -37,11 +37,6 @@ portForward:
     namespace: authority-service
     port: 3306
     localPort: 33065
-  - resourceType: service
-    resourceName: nats
-    namespace: access-nats
-    port: 4222
-    localPort: 4222
   - resourceType: service
     resourceName: kafka-service
     namespace: kafka
