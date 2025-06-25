@@ -66,7 +66,9 @@ public class PolicyController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePolicy(@PathVariable UUID id) {
+    public ResponseEntity<Void> deletePolicy(
+            @PathVariable UUID id,
+            @RequestHeader(value = "X-User-Name", defaultValue = "system") String username) {
         policyService.deletePolicy(id);
         return ResponseEntity.noContent().build();
     }

@@ -1,6 +1,10 @@
 package com.policy.authority.service;
 
 import com.policy.authority.dto.PolicyRequest;
+import com.policy.authority.event.PolicyCreatedEvent;
+import com.policy.authority.event.PolicyDeletedEvent;
+import com.policy.authority.event.PolicyUpdatedEvent;
+import com.policy.authority.event.PolicyVersionRevertedEvent;
 import com.policy.authority.exception.ResourceNotFoundException;
 import com.policy.authority.model.Policy;
 import com.policy.authority.model.PolicyStatus;
@@ -18,10 +22,14 @@ import java.util.UUID;
 public class PolicyService {
     private final PolicyRepository policyRepository;
     private final PolicyVersionRepository policyVersionRepository;
+    private final EventPublisher eventPublisher;
 
-    public PolicyService(PolicyRepository policyRepository, PolicyVersionRepository policyVersionRepository) {
+    public PolicyService(PolicyRepository policyRepository, 
+                        PolicyVersionRepository policyVersionRepository,
+                        EventPublisher eventPublisher) {
         this.policyRepository = policyRepository;
         this.policyVersionRepository = policyVersionRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     public List<Policy> getAllPolicies() {
@@ -60,7 +68,16 @@ public class PolicyService {
         );
         policy.addVersion(version);
         
-        return policyRepository.save(policy);
+        policy = policyRepository.save(policy);
+        
+        // Publish policy created event
+        eventPublisher.publishEvent(new PolicyCreatedEvent(
+            policy.getId(),
+            policy.getName(),
+            username
+        ));
+        
+        return policy;
     }
 
     @Transactional
@@ -90,13 +107,34 @@ public class PolicyService {
                     );
                     policy.addVersion(version);
                     
-                    return policyRepository.save(policy);
+                    Policy savedPolicy = policyRepository.save(policy);
+                    
+                    // Publish policy updated event
+                    eventPublisher.publishEvent(new PolicyUpdatedEvent(
+                        savedPolicy.getId(),
+                        savedPolicy.getName(),
+                        username,
+                        newVersion,
+                        updatedPolicy.getChangeNotes()
+                    ));
+                    
+                    return savedPolicy;
                 })
                 .orElseThrow(() -> new ResourceNotFoundException("Policy not found with id: " + id));
     }
 
+    @Transactional
     public void deletePolicy(UUID id) {
+        Policy policy = policyRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Policy not found with id: " + id));
+        
+        String policyName = policy.getName();
+        String username = policy.getUpdatedBy();
+        
         policyRepository.deleteById(id);
+        
+        // Publish policy deleted event
+        eventPublisher.publishEvent(new PolicyDeletedEvent(id, policyName, username));
     }
     
     public List<PolicyVersion> getPolicyVersions(UUID policyId) {
@@ -124,8 +162,12 @@ public class PolicyService {
         policy.setPolicyDefinition(targetVersion.getContent());
         policy.setUpdatedBy(username);
         
+        // Get current version before creating a new one
+        String currentVersion = policy.getCurrentVersion() != null 
+            ? policy.getCurrentVersion().getVersionNumber() 
+            : "0.0.0";
+            
         // Create a new version that is a copy of the target
-        String currentVersion = policy.getCurrentVersion().getVersionNumber();
         String newVersion = incrementVersion(currentVersion);
         
         PolicyVersion revertedVersion = new PolicyVersion(
@@ -137,7 +179,18 @@ public class PolicyService {
         );
         policy.addVersion(revertedVersion);
         
-        return policyRepository.save(policy);
+        Policy savedPolicy = policyRepository.save(policy);
+        
+        // Publish policy version reverted event
+        eventPublisher.publishEvent(new PolicyVersionRevertedEvent(
+            policy.getId(),
+            policy.getName(),
+            username,
+            currentVersion,
+            versionNumber
+        ));
+        
+        return savedPolicy;
     }
     
     @Transactional
