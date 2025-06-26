@@ -1,0 +1,9 @@
+openapi: 3.0.1
+info:
+  title: Policy Authority Service API
+  description: REST API for policy management with versioning and event publishing
+  version: 1.0.0
+servers:
+  - url: http://localhost:8082
+    description: Local development server
+paths: {} # Will be populated by springdoc automatically

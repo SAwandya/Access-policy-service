@@ -5,6 +5,7 @@ import com.policy.authority.model.Policy;
 import com.policy.authority.model.PolicyStatus;
 import com.policy.authority.model.PolicyVersion;
 import com.policy.authority.service.PolicyService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,7 @@ public class PolicyController {
     }
 
     @GetMapping
+    @Operation(summary = "Get all policies", description = "Returns all pliocies")
     public List<Policy> getAllPolicies(
             @RequestParam(required = false) PolicyStatus status,
             @RequestParam(required = false) String standard,
