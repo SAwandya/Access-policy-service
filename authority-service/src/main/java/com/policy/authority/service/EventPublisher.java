@@ -18,22 +18,22 @@ public class EventPublisher {
     
     private final KafkaTemplate<String, PolicyEvent> kafkaTemplate;
     private final boolean kafkaEnabled;
+    private final String policyEventsTopic;
+    private final long kafkaTimeoutMs;
     
-    @Value("${app.kafka.topics.policy-events:policy-events}")
-    private String policyEventsTopic;
-    
-    @Value("${app.kafka.enabled:false}")
-    private boolean isKafkaEnabled;
-    
-    @Value("${app.kafka.timeout.ms:1000}")
-    private long kafkaTimeoutMs;
-    
-    public EventPublisher(KafkaTemplate<String, PolicyEvent> kafkaTemplate) {
+    // Spring will resolve the @Value annotations and pass them into the constructor
+    public EventPublisher(KafkaTemplate<String, PolicyEvent> kafkaTemplate,
+                            @Value("${app.kafka.enabled}") boolean kafkaEnabled,
+                            @Value("${app.kafka.topics.policy-events:policy-events}") String policyEventsTopic,
+                            @Value("${app.kafka.timeout.ms:1000}") long kafkaTimeoutMs) {
         this.kafkaTemplate = kafkaTemplate;
-        this.kafkaEnabled = isKafkaEnabled;
+        this.kafkaEnabled = kafkaEnabled; // Now kafkaEnabled has the correct value
+        this.policyEventsTopic = policyEventsTopic;
+        this.kafkaTimeoutMs = kafkaTimeoutMs;
     }
     
     public void publishEvent(PolicyEvent event) {
+        // This logic now works perfectly
         if (!kafkaEnabled) {
             logger.info("Kafka publishing disabled. Event {} logged but not published.", event.getEventType());
             return;
@@ -43,7 +43,6 @@ public class EventPublisher {
             CompletableFuture<SendResult<String, PolicyEvent>> future = 
                 kafkaTemplate.send(policyEventsTopic, event.getPolicyId().toString(), event);
             
-            // Add timeout to avoid hanging
             future.completeOnTimeout(null, kafkaTimeoutMs, TimeUnit.MILLISECONDS)
                 .whenComplete((result, ex) -> {
                     if (ex == null && result != null) {
