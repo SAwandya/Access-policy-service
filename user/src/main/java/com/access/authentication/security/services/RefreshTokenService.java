@@ -2,6 +2,7 @@ package com.access.authentication.security.services;
 
 import com.access.authentication.exception.TokenRefreshException;
 import com.access.authentication.model.RefreshToken;
+import com.access.authentication.model.User;
 import com.access.authentication.repository.RefreshTokenRepository;
 import com.access.authentication.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,14 +30,27 @@ public class RefreshTokenService {
     }
 
     public RefreshToken createRefreshToken(Long userId) {
-        RefreshToken refreshToken = new RefreshToken();
-
-        refreshToken.setUser(userRepository.findById(userId).get());
-        refreshToken.setExpiryDate(Instant.now().plusMillis(refreshTokenDurationMs));
-        refreshToken.setToken(UUID.randomUUID().toString());
-
-        refreshToken = refreshTokenRepository.save(refreshToken);
-        return refreshToken;
+        // First, get the user
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        // Check if user already has a refresh token
+        Optional<RefreshToken> existingToken = refreshTokenRepository.findByUser(user);
+        
+        if (existingToken.isPresent()) {
+            // Update existing token
+            RefreshToken refreshToken = existingToken.get();
+            refreshToken.setExpiryDate(Instant.now().plusMillis(refreshTokenDurationMs));
+            refreshToken.setToken(UUID.randomUUID().toString());
+            return refreshTokenRepository.save(refreshToken);
+        } else {
+            // Create new token
+            RefreshToken refreshToken = new RefreshToken();
+            refreshToken.setUser(user);
+            refreshToken.setExpiryDate(Instant.now().plusMillis(refreshTokenDurationMs));
+            refreshToken.setToken(UUID.randomUUID().toString());
+            return refreshTokenRepository.save(refreshToken);
+        }
     }
 
     public RefreshToken verifyExpiration(RefreshToken token) {
