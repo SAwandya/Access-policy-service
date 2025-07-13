@@ -6,9 +6,12 @@ import com.policy.authority.model.PolicyStatus;
 import com.policy.authority.model.PolicyVersion;
 import com.policy.authority.service.PolicyService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -53,7 +56,8 @@ public class PolicyController {
     @PostMapping
     public ResponseEntity<Policy> createPolicy(
             @Valid @RequestBody PolicyRequest policy,
-            @RequestHeader(value = "X-User-Name", defaultValue = "system") String username) {
+            HttpServletRequest request) {
+        String username = getCurrentUsername();
         Policy createdPolicy = policyService.createPolicy(policy, username);
         return new ResponseEntity<>(createdPolicy, HttpStatus.CREATED);
     }
@@ -61,16 +65,15 @@ public class PolicyController {
     @PutMapping("/{id}")
     public ResponseEntity<Policy> updatePolicy(
             @PathVariable UUID id,
-            @Valid @RequestBody PolicyRequest policy,
-            @RequestHeader(value = "X-User-Name", defaultValue = "system") String username) {
+            @Valid @RequestBody PolicyRequest policy) {
+        String username = getCurrentUsername();
         Policy updatedPolicy = policyService.updatePolicy(id, policy, username);
         return ResponseEntity.ok(updatedPolicy);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePolicy(
-            @PathVariable UUID id,
-            @RequestHeader(value = "X-User-Name", defaultValue = "system") String username) {
+    public ResponseEntity<Void> deletePolicy(@PathVariable UUID id) {
+        String username = getCurrentUsername();
         policyService.deletePolicy(id);
         return ResponseEntity.noContent().build();
     }
@@ -92,8 +95,8 @@ public class PolicyController {
     @PostMapping("/{id}/revert/{versionNumber}")
     public ResponseEntity<Policy> revertToVersion(
             @PathVariable UUID id, 
-            @PathVariable String versionNumber,
-            @RequestHeader(value = "X-User-Name", defaultValue = "system") String username) {
+            @PathVariable String versionNumber) {
+        String username = getCurrentUsername();
         Policy policy = policyService.revertToVersion(id, versionNumber, username);
         return ResponseEntity.ok(policy);
     }
@@ -101,8 +104,8 @@ public class PolicyController {
     @PutMapping("/{id}/status")
     public ResponseEntity<Policy> updatePolicyStatus(
             @PathVariable UUID id,
-            @RequestParam PolicyStatus status,
-            @RequestHeader(value = "X-User-Name", defaultValue = "system") String username) {
+            @RequestParam PolicyStatus status) {
+        String username = getCurrentUsername();
         Policy policy = policyService.updatePolicyStatus(id, status, username);
         return ResponseEntity.ok(policy);
     }
@@ -126,5 +129,13 @@ public class PolicyController {
         templates.put("data-protection", "Data Protection Policy Template");
         templates.put("incident-response", "Incident Response Policy Template");
         return ResponseEntity.ok(templates);
+    }
+    
+    private String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "system";
+        }
+        return authentication.getName();
     }
 }
